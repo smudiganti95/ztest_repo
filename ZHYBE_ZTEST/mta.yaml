@@ -1,0 +1,93 @@
+_schema-version: "3.2"
+ID: ZHYBE_ZTEST
+version: 0.0.1
+modules:
+- name: ZHYBE_ZTEST-destination-content
+  type: com.sap.application.content
+  requires:
+  - name: ZHYBE_ZTEST-destination-service
+    parameters:
+      content-target: true
+  - name: ZHYBE_ZTEST_html_repo_host
+    parameters:
+      service-key:
+        name: ZHYBE_ZTEST_html_repo_host-key
+  - name: uaa_ZHYBE_ZTEST
+    parameters:
+      service-key:
+        name: uaa_ZHYBE_ZTEST-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Name: zhybe_ztest_ZHYBE_ZTEST_html_repo_host
+          ServiceInstanceName: ZHYBE_ZTEST-html5-app-host-service
+          ServiceKeyName: ZHYBE_ZTEST_html_repo_host-key
+          sap.cloud.service: zhybe.ztest
+        - Authentication: OAuth2UserTokenExchange
+          Name: zhybe_ztest_uaa_ZHYBE_ZTEST
+          ServiceInstanceName: ZHYBE_ZTEST-xsuaa-service
+          ServiceKeyName: uaa_ZHYBE_ZTEST-key
+          sap.cloud.service: zhybe.ztest
+        existing_destinations_policy: ignore
+  build-parameters:
+    no-source: true
+- name: ZHYBE_ZTEST-app-content
+  type: com.sap.application.content
+  path: .
+  requires:
+  - name: ZHYBE_ZTEST_html_repo_host
+    parameters:
+      content-target: true
+  build-parameters:
+    build-result: resources
+    requires:
+    - artifacts:
+      - comhybezhybztest.zip
+      name: comhybezhybztest
+      target-path: resources/
+- name: comhybezhybztest
+  type: html5
+  path: zhyb_ztest
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+resources:
+- name: ZHYBE_ZTEST-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      init_data:
+        instance:
+          destinations:
+          - Authentication: NoAuthentication
+            Name: ui5
+            ProxyType: Internet
+            Type: HTTP
+            URL: https://ui5.sap.com
+          existing_destinations_policy: update
+      version: 1.0.0
+    service: destination
+    service-name: ZHYBE_ZTEST-destination-service
+    service-plan: lite
+- name: ZHYBE_ZTEST_html_repo_host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: ZHYBE_ZTEST-html5-app-host-service
+    service-plan: app-host
+- name: uaa_ZHYBE_ZTEST
+  type: org.cloudfoundry.managed-service
+  parameters:
+    path: ./xs-security.json
+    service: xsuaa
+    service-name: ZHYBE_ZTEST-xsuaa-service
+    service-plan: application
+parameters:
+  deploy_mode: html5-repo
+  enable-parallel-deployments: true
